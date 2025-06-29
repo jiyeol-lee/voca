@@ -9,7 +9,8 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/jiyeol-lee/voca/pkg/copilot"
+	"github.com/jiyeol-lee/copilot"
+	"github.com/jiyeol-lee/voca/pkg/news"
 	"github.com/jiyeol-lee/voca/pkg/vocabulary"
 )
 
@@ -18,6 +19,31 @@ func main() {
 	args := flag.Args()
 
 	switch args[0] {
+	case "news":
+		n := news.News{}
+		ns, err := n.NewNews("apnews")
+		if err != nil {
+			log.Fatalf("Error creating news instance: %v", err)
+		}
+		err = ns.ApNews.ListArticles()
+		if err != nil {
+			log.Fatalf("Error listing articles: %v", err)
+		}
+
+		// stdin to select article
+		fmt.Print("Select an article number: ")
+		var input string
+		fmt.Scanln(&input)
+		if input == "" {
+			log.Fatal("No input provided")
+		}
+
+		article, err := ns.ApNews.RetrieveArticle(input)
+		if err != nil {
+			log.Fatalf("Error retrieving article: %v", err)
+		}
+		fmt.Println(article)
+		break
 	case "add":
 		content := strings.Join(args[1:], " ")
 
@@ -91,8 +117,7 @@ When given a word or phrase, follow these steps:
 		cmd.Output()
 		break
 	default:
-		fmt.Println("Expected 'add' or 'study' subcommands")
+		fmt.Println("Expected 'news', 'add' or 'study' subcommands")
 		os.Exit(1)
-
 	}
 }
