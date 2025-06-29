@@ -7,14 +7,14 @@ import (
 	"time"
 )
 
-func (s *Store) checkIsGitRepo() bool {
+func (s *store) checkIsGitRepo() bool {
 	cmd := exec.Command("git", "rev-parse", "--is-inside-work-tree")
 	cmd.Dir = s.storePath
 	err := cmd.Run()
 	return err == nil
 }
 
-func (s *Store) checkIsSynced() error {
+func (s *store) checkIsSynced() error {
 	cmdRevParse := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
 	cmdRevParse.Dir = s.storePath
 	revParseOutput, err := cmdRevParse.Output()
@@ -44,7 +44,7 @@ func (s *Store) checkIsSynced() error {
 	return nil
 }
 
-func (s *Store) commitChanges() error {
+func (s *store) commitChanges() error {
 	formattedNow := time.Now().Format("2006-01-02 15:04:05 (-0700)")
 	cmdAdd := exec.Command("git", "add", "-A")
 	cmdAdd.Dir = s.storePath
@@ -68,7 +68,7 @@ func (s *Store) commitChanges() error {
 	return nil
 }
 
-func (s *Store) pushChanges() error {
+func (s *store) pushChanges() error {
 	cmdPush := exec.Command("git", "push", "--force-with-lease")
 	cmdPush.Dir = s.storePath
 	err := cmdPush.Run()
@@ -79,7 +79,7 @@ func (s *Store) pushChanges() error {
 	return nil
 }
 
-func (s *Store) syncStore() error {
+func (s *store) syncStore() error {
 	isGitRepo := s.checkIsGitRepo()
 	if !isGitRepo {
 		return fmt.Errorf("store is not a git repository")

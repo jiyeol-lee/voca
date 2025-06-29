@@ -15,12 +15,19 @@ import (
 
 var vocabularyTableName = "eng__voca"
 
-type Store struct {
+type store struct {
 	cs        *csvstore.CSVStore
 	storePath string
 }
 
-func (s *Store) NewVocabulary(word string) (csvstore.CSVRecord, error) {
+func NewStore() *store {
+	return &store{
+		cs:        nil,
+		storePath: "",
+	}
+}
+
+func (s *store) AddVocabulary(word string) (csvstore.CSVRecord, error) {
 	cs, err := s.getCSVStore()
 	if err != nil {
 		return nil, fmt.Errorf("error getting CSV store: %w", err)
@@ -44,7 +51,7 @@ func (s *Store) NewVocabulary(word string) (csvstore.CSVRecord, error) {
 	return newVocab, nil
 }
 
-func (s *Store) GetLeastReadVocabulary() (csvstore.CSVRecord, error) {
+func (s *store) GetLeastReadVocabulary() (csvstore.CSVRecord, error) {
 	cs, err := s.getCSVStore()
 	if err != nil {
 		return nil, fmt.Errorf("error getting CSV store: %w", err)
@@ -103,7 +110,7 @@ func (s *Store) GetLeastReadVocabulary() (csvstore.CSVRecord, error) {
 	return leastReadVoca, nil
 }
 
-func (s *Store) getCSVStore() (*csvstore.CSVStore, error) {
+func (s *store) getCSVStore() (*csvstore.CSVStore, error) {
 	if s.cs == nil {
 		err := s.initialize()
 		if err != nil {
@@ -113,7 +120,7 @@ func (s *Store) getCSVStore() (*csvstore.CSVStore, error) {
 	return s.cs, nil
 }
 
-func (s *Store) initialize() error {
+func (s *store) initialize() error {
 	tempDir := os.TempDir()
 	csvStoreFolderName := fmt.Sprintf("csv__voca--%s", time.Now().Format("2006-01-02"))
 	csvStoreFilepath := filepath.Join(tempDir, csvStoreFolderName)
