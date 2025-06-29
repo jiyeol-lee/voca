@@ -65,7 +65,6 @@ func main() {
 			log.Fatalf("Error retrieving article: %v", err)
 		}
 		fmt.Println(article)
-		break
 
 	case "add":
 		content := strings.Join(args[1:], " ")
@@ -76,7 +75,6 @@ func main() {
 		if err != nil {
 			log.Fatalf("Error adding vocabulary: %v", err)
 		}
-		break
 
 	case "study":
 		s := vocabulary.NewStore()
@@ -112,7 +110,6 @@ func main() {
 		fmt.Println(res.Choices[0].Message.Content)
 		cmd := exec.Command("say", content)
 		cmd.Output()
-		break
 	default:
 		fmt.Println("Expected 'news', 'add' or 'study' subcommands")
 		os.Exit(1)
