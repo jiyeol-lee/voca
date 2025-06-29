@@ -1,4 +1,6 @@
-github.com/jiyeol-lee/csvstore v0.0.0-20250616185511-57764ecbd6dd h1:HT/a/ntLSeAGmiVHUwXE7Yo8gQNEC1rvj7deic9Vh08=
-github.com/jiyeol-lee/csvstore v0.0.0-20250616185511-57764ecbd6dd/go.mod h1:pypLHjz6KBrl+ae4/NDlVsIoTpTq//eB30O+ufaJL7U=
+github.com/jiyeol-lee/copilot v0.0.0-20250629183101-ea38b70a1ca9 h1:0UiXlj6CCtLU3n3X1BrIOc9hAcfWim7tEvlWCJI63Vc=
+github.com/jiyeol-lee/copilot v0.0.0-20250629183101-ea38b70a1ca9/go.mod h1:BgqImuld8ah1vbK6mIGy0ECk/V3S/uiiRyO/KhMKyPI=
 github.com/jiyeol-lee/csvstore v0.0.0-20250619185743-7e006f235166 h1:r5k4p0N0PLNTaUfKIkMT8qx0o+6W+Gqa5fTOyfcu4HE=
 github.com/jiyeol-lee/csvstore v0.0.0-20250619185743-7e006f235166/go.mod h1:pypLHjz6KBrl+ae4/NDlVsIoTpTq//eB30O+ufaJL7U=
+golang.org/x/net v0.33.0 h1:74SYHlV8BIgHIFC/LrYkOGIwL19eTYXQ5wc6TBuO36I=
+golang.org/x/net v0.33.0/go.mod h1:HXLR5J+9DxmrqMwG9qjGCxZ+zKXxBru04zlTvWlWuN4=
