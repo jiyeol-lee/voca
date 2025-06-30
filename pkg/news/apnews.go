@@ -151,7 +151,7 @@ func (a *APNews) extractArticle(doc *html.Node) (string, error) {
 	var contentNode *html.Node
 	var findContent func(*html.Node) bool
 	findContent = func(n *html.Node) bool {
-		if n.Type == html.ElementNode && hasClass(n, "RichTextStoryBody") {
+		if n.Type == html.ElementNode && hasClass(n, "RichTextBody") {
 			contentNode = n
 			return true
 		}
