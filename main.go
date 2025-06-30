@@ -96,8 +96,9 @@ func main() {
 	case "study":
 		s := vocabulary.NewStore()
 
+		isUserEntered := len(args) > 1
 		var content string
-		if len(args) > 1 {
+		if isUserEntered {
 			content = strings.Join(args[1:], " ")
 		} else {
 			rec, err := s.GetLeastReadVocabulary()
@@ -131,6 +132,22 @@ func main() {
 		err = pagerView(res.Choices[0].Message.Content)
 		if err != nil {
 			log.Fatalf("Error displaying content in pager view: %v", err)
+		}
+		if isUserEntered {
+			fmt.Print(
+				"Do you want to add it to dictionary? (Enter 'y' or 'yes' to add, or any other key to exit): ",
+			)
+			var input string
+			fmt.Scanln(&input)
+			if input != "y" && input != "yes" {
+				fmt.Println("See ya!")
+				os.Exit(0)
+			}
+			s = vocabulary.NewStore()
+			_, err := s.AddVocabulary(content)
+			if err != nil {
+				log.Fatalf("Error adding vocabulary: %v", err)
+			}
 		}
 	default:
 		fmt.Println("Expected 'news', 'add' or 'study' subcommands")
