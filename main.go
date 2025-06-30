@@ -26,6 +26,7 @@ var vocaGpt = struct {
 - Use Markdown formatting in your answers.
 - Do not ask any follow-up questions.
 - Answer, "I cannot answer because it is not a word or phrase," if it is not related to the word or phrase.
+- Add a word or phrase as H1 header in your response.
 - Only answer two categories: **Explanation** and **Examples** as H2 headers.
 - Each of the two categories above has two subcategories: **English** and **Korean** as H3 headers.
 - For the Explanation category, add another subcategory: **Pronunciation** as an H4 header, only under the **Korean** subcategory. This category is for how to read English words or phrases using Korean
