@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 )
 
@@ -25,6 +26,17 @@ func pagerView(content string) error {
 	}
 	tmpFile.Close()
 
+	var termWidth int
+	if widthCmd := exec.Command("tput", "cols"); widthCmd != nil {
+		if output, err := widthCmd.Output(); err == nil {
+			if width := strings.TrimSpace(string(output)); width != "" {
+				if parsedWidth, err := strconv.Atoi(width); err == nil && parsedWidth > 0 {
+					termWidth = parsedWidth
+				}
+			}
+		}
+	}
+
 	awkScript := `
 {
 	if ($0 ~ /^###### /) {
@@ -44,12 +56,25 @@ func pagerView(content string) error {
 	}
 }
 `
-
-	cmd := exec.Command(
-		"sh",
-		"-c",
-		fmt.Sprintf(`awk '%s' %s | less -Rc`, awkScript, tmpFile.Name()),
-	)
+	var cmd *exec.Cmd
+	if termWidth > 0 {
+		cmd = exec.Command(
+			"sh",
+			"-c",
+			fmt.Sprintf(
+				`fold -s -w %d %s | awk '%s' | less -Rc`,
+				200,
+				tmpFile.Name(),
+				awkScript,
+			),
+		)
+	} else {
+		cmd = exec.Command(
+			"sh",
+			"-c",
+			fmt.Sprintf(`awk '%s' %s | less -Rc`, awkScript, tmpFile.Name()),
+		)
+	}
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return err
