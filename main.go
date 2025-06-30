@@ -6,7 +6,9 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"os/signal"
 	"strings"
+	"syscall"
 
 	"github.com/jiyeol-lee/copilot"
 	"github.com/jiyeol-lee/voca/pkg/news"
@@ -52,19 +54,33 @@ func main() {
 			log.Fatalf("Error listing articles: %v", err)
 		}
 
-		// stdin to select article
-		fmt.Print("Select an article number: ")
-		var input string
-		fmt.Scanln(&input)
-		if input == "" {
-			log.Fatal("No input provided")
-		}
+		// to handle graceful shutdown on SIGINT or SIGTERM
+		sigChan := make(chan os.Signal, 1)
+		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
-		article, err := ns.ApNews.RetrieveArticle(input)
-		if err != nil {
-			log.Fatalf("Error retrieving article: %v", err)
+		for {
+			fmt.Print("Select an article number (or 'q' to exit): ")
+			var input string
+			fmt.Scanln(&input)
+			if input == "" {
+				fmt.Println("No input provided")
+				continue
+			}
+			if input == "q" {
+				os.Exit(0)
+			}
+
+			article, err := ns.ApNews.RetrieveArticle(input)
+			if err != nil {
+				fmt.Printf("Error retrieving article: %v", err)
+				continue
+			}
+			err = pagerView(article)
+			if err != nil {
+				fmt.Printf("Error displaying article in pager view: %v", err)
+				continue
+			}
 		}
-		fmt.Println(article)
 
 	case "add":
 		content := strings.Join(args[1:], " ")
@@ -107,9 +123,14 @@ func main() {
 			log.Fatalf("Error getting chat completion: %v", err)
 		}
 
-		fmt.Println(res.Choices[0].Message.Content)
-		cmd := exec.Command("say", content)
-		cmd.Output()
+		go func() {
+			cmd := exec.Command("say", content)
+			cmd.Output()
+		}()
+		err = pagerView(res.Choices[0].Message.Content)
+		if err != nil {
+			log.Fatalf("Error displaying content in pager view: %v", err)
+		}
 	default:
 		fmt.Println("Expected 'news', 'add' or 'study' subcommands")
 		os.Exit(1)
