@@ -44,11 +44,17 @@ func (a *APNews) ListArticles() error {
 		return fmt.Errorf("failed to write header: %w", err)
 	}
 	for articleIndex, article := range a.Articles {
+		if article.URL == "" {
+			continue
+		}
 		_, err := fmt.Fprintf(writer, "%d\t%s\n", articleIndex+1, article.Title)
 		if err != nil {
 			return fmt.Errorf("failed to write article data: %w", err)
 		}
 		for relatedIndex, relatedArticle := range article.RelatedArticles {
+			if relatedArticle.URL == "" {
+				continue
+			}
 			_, err := fmt.Fprintf(
 				writer,
 				" %d-%d\t%s\n",
