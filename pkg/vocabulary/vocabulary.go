@@ -33,6 +33,18 @@ func (s *store) AddVocabulary(word string) (csvstore.CSVRecord, error) {
 		return nil, fmt.Errorf("error getting CSV store: %w", err)
 	}
 
+	qResult, err := cs.Query(vocabularyTableName, []csvstore.QueryCondition{{
+		Column:   "word",
+		Operator: "=",
+		Value:    word,
+	}})
+	if err != nil {
+		return nil, fmt.Errorf("error while checking existing vocabulary: %w", err)
+	}
+	if qResult.Count > 0 {
+		return nil, fmt.Errorf("vocabulary already exists: %s", word)
+	}
+
 	newVocab, err := cs.Insert(vocabularyTableName, csvstore.CSVRecord{
 		"word":       word,
 		"read_count": "0",
