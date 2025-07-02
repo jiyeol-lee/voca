@@ -2,6 +2,7 @@ package news
 
 import (
 	"net/http"
+	"slices"
 	"strings"
 
 	"golang.org/x/net/html"
@@ -65,8 +66,12 @@ func extractFirstAnchor(n *html.Node) (href, text string, found bool) {
 // hasClass checks if an HTML node has a specific class attribute.
 func hasClass(n *html.Node, class string) bool {
 	for _, attr := range n.Attr {
-		if attr.Key == "class" && strings.Contains(attr.Val, class) {
-			return true
+		if attr.Key == "class" {
+			classes := strings.Fields(attr.Val)
+			if slices.Contains(classes, class) {
+				return true
+			}
+
 		}
 	}
 	return false

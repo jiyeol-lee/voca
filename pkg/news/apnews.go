@@ -148,23 +148,23 @@ func (a *APNews) extractArticle(doc *html.Node) (string, error) {
 		return "", fmt.Errorf("header not found")
 	}
 
-	var contentNode *html.Node
-	var findContent func(*html.Node) bool
-	findContent = func(n *html.Node) bool {
+	var contentBodyNode *html.Node
+	var findContentBody func(*html.Node) bool
+	findContentBody = func(n *html.Node) bool {
 		if n.Type == html.ElementNode && hasClass(n, "RichTextBody") {
-			contentNode = n
+			contentBodyNode = n
 			return true
 		}
 		for c := n.FirstChild; c != nil; c = c.NextSibling {
-			if findContent(c) {
+			if findContentBody(c) {
 				return true
 			}
 		}
 		return false
 	}
 
-	findContent(doc)
-	if contentNode == nil {
+	findContentBody(doc)
+	if contentBodyNode == nil {
 		return "", fmt.Errorf("content not found")
 	}
 
@@ -176,32 +176,51 @@ func (a *APNews) extractArticle(doc *html.Node) (string, error) {
 		sb.WriteString("\n# " + headerText + "\n\n")
 	}
 
-	// Traverse only immediate children of contentNode
-	for c := contentNode.FirstChild; c != nil; c = c.NextSibling {
-		if c.Type != html.ElementNode {
-			continue
-		}
-		tag := c.Data
-		text := extractText(c)
-		if text == "" {
-			continue
-		}
+	var walk func(*html.Node)
+	walk = func(n *html.Node) {
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			if c.Type != html.ElementNode {
+				continue
+			}
+			tag := c.Data
+			text := extractText(c)
+			if text == "" {
+				continue
+			}
 
-		switch tag {
-		case "p":
-			sb.WriteString(text + "\n\n")
-		case "h2":
-			sb.WriteString("\n## " + text + "\n\n")
-		case "h3":
-			sb.WriteString("\n### " + text + "\n\n")
-		case "h4":
-			sb.WriteString("\n#### " + text + "\n\n")
-		case "h5":
-			sb.WriteString("\n##### " + text + "\n\n")
-		case "h6":
-			sb.WriteString("\n###### " + text + "\n\n")
+			switch tag {
+			case "div":
+				if hasClass(c, "Infobox") {
+					walk(c)
+				} else if hasClass(c, "Infobox-items") && c.FirstChild != nil {
+					sb.WriteString("\n## Information\n")
+					walk(c)
+				}
+			case "ul":
+				walk(c)
+			case "li":
+				sb.WriteString("- " + text + "\n\n")
+			case "p":
+				if isUnderClass(c, "Infobox") {
+					sb.WriteString("\n### " + text + "\n\n")
+				} else {
+					sb.WriteString(text + "\n\n")
+				}
+			case "h2":
+				sb.WriteString("\n## " + text + "\n\n")
+			case "h3":
+				sb.WriteString("\n### " + text + "\n\n")
+			case "h4":
+				sb.WriteString("\n#### " + text + "\n\n")
+			case "h5":
+				sb.WriteString("\n##### " + text + "\n\n")
+			case "h6":
+				sb.WriteString("\n###### " + text + "\n\n")
+			}
 		}
 	}
+
+	walk(contentBodyNode)
 
 	return sb.String(), nil
 }
