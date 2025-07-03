@@ -193,7 +193,7 @@ func (a *APNews) extractArticle(doc *html.Node) (string, error) {
 				if hasClass(c, "Infobox") {
 					walk(c)
 				} else if hasClass(c, "Infobox-items") && c.FirstChild != nil {
-					sb.WriteString("\n## Information\n")
+					sb.WriteString("## Information\n\n")
 					walk(c)
 				}
 			case "ul":
@@ -202,20 +202,20 @@ func (a *APNews) extractArticle(doc *html.Node) (string, error) {
 				sb.WriteString("- " + text + "\n\n")
 			case "p":
 				if isUnderClass(c, "Infobox") {
-					sb.WriteString("\n### " + text + "\n\n")
+					sb.WriteString("### " + text + "\n\n")
 				} else {
 					sb.WriteString(text + "\n\n")
 				}
 			case "h2":
-				sb.WriteString("\n## " + text + "\n\n")
+				sb.WriteString("## " + text + "\n\n")
 			case "h3":
-				sb.WriteString("\n### " + text + "\n\n")
+				sb.WriteString("### " + text + "\n\n")
 			case "h4":
-				sb.WriteString("\n#### " + text + "\n\n")
+				sb.WriteString("#### " + text + "\n\n")
 			case "h5":
-				sb.WriteString("\n##### " + text + "\n\n")
+				sb.WriteString("##### " + text + "\n\n")
 			case "h6":
-				sb.WriteString("\n###### " + text + "\n\n")
+				sb.WriteString("###### " + text + "\n\n")
 			}
 		}
 	}
