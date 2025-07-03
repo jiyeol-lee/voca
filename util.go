@@ -9,6 +9,35 @@ import (
 	"strings"
 )
 
+func getTerminalWidth() int {
+	// Check if we're running inside tmux
+	if os.Getenv("TMUX") != "" {
+		// Use tmux command to get pane width
+		if tmuxCmd := exec.Command("tmux", "display-message", "-p", "#{pane_width}"); tmuxCmd != nil {
+			if output, err := tmuxCmd.Output(); err == nil {
+				if width := strings.TrimSpace(string(output)); width != "" {
+					if parsedWidth, err := strconv.Atoi(width); err == nil && parsedWidth > 0 {
+						return parsedWidth
+					}
+				}
+			}
+		}
+	}
+
+	// Fallback to tput cols for regular terminals
+	if widthCmd := exec.Command("tput", "cols"); widthCmd != nil {
+		if output, err := widthCmd.Output(); err == nil {
+			if width := strings.TrimSpace(string(output)); width != "" {
+				if parsedWidth, err := strconv.Atoi(width); err == nil && parsedWidth > 0 {
+					return parsedWidth
+				}
+			}
+		}
+	}
+
+	return 0 // Return 0 if unable to determine width
+}
+
 func pagerView(content string) error {
 	tmpDir := os.TempDir()
 	// write the content to a temporary file
@@ -26,16 +55,7 @@ func pagerView(content string) error {
 	}
 	tmpFile.Close()
 
-	var termWidth int
-	if widthCmd := exec.Command("tput", "cols"); widthCmd != nil {
-		if output, err := widthCmd.Output(); err == nil {
-			if width := strings.TrimSpace(string(output)); width != "" {
-				if parsedWidth, err := strconv.Atoi(width); err == nil && parsedWidth > 0 {
-					termWidth = parsedWidth
-				}
-			}
-		}
-	}
+	termWidth := getTerminalWidth()
 
 	awkScript := `
 {
@@ -63,7 +83,7 @@ func pagerView(content string) error {
 			"-c",
 			fmt.Sprintf(
 				`fold -s -w %d %s | awk '%s' | less -Rc`,
-				200,
+				termWidth,
 				tmpFile.Name(),
 				awkScript,
 			),
