@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/jiyeol-lee/csvstore"
@@ -33,10 +34,12 @@ func (s *store) AddVocabulary(word string) (csvstore.CSVRecord, error) {
 		return nil, fmt.Errorf("error getting CSV store: %w", err)
 	}
 
+	lowercaseWord := strings.ToLower(strings.TrimSpace(word))
+
 	qResult, err := cs.Query(vocabularyTableName, []csvstore.QueryCondition{{
 		Column:   "word",
 		Operator: "=",
-		Value:    word,
+		Value:    lowercaseWord,
 	}})
 	if err != nil {
 		return nil, fmt.Errorf("error while checking existing vocabulary: %w", err)
@@ -46,7 +49,7 @@ func (s *store) AddVocabulary(word string) (csvstore.CSVRecord, error) {
 	}
 
 	newVocab, err := cs.Insert(vocabularyTableName, csvstore.CSVRecord{
-		"word":       word,
+		"word":       lowercaseWord,
 		"read_count": "0",
 	})
 	if err != nil {
