@@ -66,6 +66,47 @@ func (s *store) AddVocabulary(word string) (csvstore.CSVRecord, error) {
 	return newVocab, nil
 }
 
+func (s *store) DeleteVocabulary(word string) error {
+	cs, err := s.getCSVStore()
+	if err != nil {
+		return fmt.Errorf("error getting CSV store: %w", err)
+	}
+
+	lowercaseWord := strings.ToLower(strings.TrimSpace(word))
+
+	qResult, err := cs.Query(vocabularyTableName, []csvstore.QueryCondition{{
+		Column:   "word",
+		Operator: "=",
+		Value:    lowercaseWord,
+	}})
+	if err != nil {
+		return fmt.Errorf("error while checking existing vocabulary: %w", err)
+	}
+	if qResult.Count == 0 {
+		return fmt.Errorf("vocabulary not found: %s", word)
+	}
+
+	qResult, err = cs.Delete(vocabularyTableName, []csvstore.QueryCondition{
+		{
+			Column:   "word",
+			Operator: "=",
+			Value:    lowercaseWord,
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("error deleting vocabulary: %w", err)
+	}
+
+	defer func() {
+		err := s.syncStore()
+		if err != nil {
+			log.Printf("error syncing store: %v\n", err)
+		}
+	}()
+
+	return nil
+}
+
 func (s *store) GetLeastReadVocabulary() (csvstore.CSVRecord, error) {
 	cs, err := s.getCSVStore()
 	if err != nil {

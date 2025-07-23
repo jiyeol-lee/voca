@@ -93,6 +93,16 @@ func main() {
 			log.Fatalf("Error adding vocabulary: %v", err)
 		}
 
+	case "delete":
+		content := strings.Join(args[1:], " ")
+
+		s := vocabulary.NewStore()
+
+		err := s.DeleteVocabulary(content)
+		if err != nil {
+			log.Fatalf("Error deleting vocabulary: %v", err)
+		}
+
 	case "study":
 		s := vocabulary.NewStore()
 
