@@ -38,6 +38,8 @@ func getTerminalWidth() int {
 	return 0 // Return 0 if unable to determine width
 }
 
+var maxWidth = 100
+
 func pagerView(content string) error {
 	tmpDir := os.TempDir()
 	// write the content to a temporary file
@@ -78,6 +80,9 @@ func pagerView(content string) error {
 `
 	var cmd *exec.Cmd
 	if termWidth > 0 {
+		if termWidth > maxWidth {
+			termWidth = maxWidth
+		}
 		cmd = exec.Command(
 			"sh",
 			"-c",
