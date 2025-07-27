@@ -115,19 +115,25 @@ func (a *APNews) RetrieveArticle(index string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to retrieve article: %w", err)
 	}
-	articleContent, err := a.extractArticle(doc)
+	article, err := a.extractArticle(doc)
 	if err != nil {
 		return "", fmt.Errorf("failed to extract article content: %w", err)
 	}
-	if articleContent == "" {
+	if article.Title == "" || article.Body == "" {
 		return "", fmt.Errorf("article content is empty")
 	}
+	fullArticleText := fmt.Sprintf("\n# \033]8;;%s\a%s\033]8;;\a\n\n%s",
+		articleUrl, article.Title, article.Body)
 
-	return articleContent, nil
+	return fullArticleText, nil
 }
 
 // extractArticle extracts the main content of an article from the given HTML document.
-func (a *APNews) extractArticle(doc *html.Node) (string, error) {
+func (a *APNews) extractArticle(doc *html.Node) (*struct {
+	Title string
+	Body  string
+}, error,
+) {
 	var headerNode *html.Node
 	var findHeader func(*html.Node) bool
 	findHeader = func(n *html.Node) bool {
@@ -145,7 +151,7 @@ func (a *APNews) extractArticle(doc *html.Node) (string, error) {
 
 	findHeader(doc)
 	if headerNode == nil {
-		return "", fmt.Errorf("header not found")
+		return nil, fmt.Errorf("header not found")
 	}
 
 	var contentBodyNode *html.Node
@@ -165,17 +171,13 @@ func (a *APNews) extractArticle(doc *html.Node) (string, error) {
 
 	findContentBody(doc)
 	if contentBodyNode == nil {
-		return "", fmt.Errorf("content not found")
+		return nil, fmt.Errorf("content not found")
 	}
-
-	var sb strings.Builder
 
 	// Write header
 	headerText := extractText(headerNode)
-	if headerText != "" {
-		sb.WriteString("\n# " + headerText + "\n\n")
-	}
 
+	var sb strings.Builder
 	var walk func(*html.Node)
 	walk = func(n *html.Node) {
 		for c := n.FirstChild; c != nil; c = c.NextSibling {
@@ -222,7 +224,13 @@ func (a *APNews) extractArticle(doc *html.Node) (string, error) {
 
 	walk(contentBodyNode)
 
-	return sb.String(), nil
+	return &struct {
+		Title string
+		Body  string
+	}{
+		Title: headerText,
+		Body:  sb.String(),
+	}, nil
 }
 
 // extractArticles extracts articles from the the given HTML document.
