@@ -83,16 +83,16 @@ func pagerView(content string) error {
 		if termWidth > maxWidth {
 			termWidth = maxWidth
 		}
-		cmd = exec.Command(
-			"sh",
-			"-c",
-			fmt.Sprintf(
-				`fold -s -w %d %s | awk '%s' | less -Rc`,
-				termWidth,
-				tmpFile.Name(),
-				awkScript,
-			),
+		shellCmd := fmt.Sprintf(
+			`awk -v w=%d '
+       index($0, "\033]8;;") { print; next }
+       { cmd="fold -s -w " w; print | cmd; close(cmd) }
+     ' %q | awk '%s' | less -Rc`,
+			termWidth,
+			tmpFile.Name(),
+			awkScript,
 		)
+		cmd = exec.Command("sh", "-c", shellCmd)
 	} else {
 		cmd = exec.Command(
 			"sh",
