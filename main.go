@@ -161,7 +161,7 @@ func main() {
 			}
 		}
 	default:
-		fmt.Println("Expected 'news', 'add' or 'study' subcommands")
+		fmt.Println("Expected 'news', 'add', 'delete' or 'study' subcommands")
 		os.Exit(1)
 	}
 }
