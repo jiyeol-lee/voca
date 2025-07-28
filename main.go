@@ -8,7 +8,8 @@ import (
 	"os/exec"
 	"os/signal"
 	"strings"
-	"syscall"
+
+	"golang.org/x/sys/unix"
 
 	"github.com/jiyeol-lee/copilot"
 	"github.com/jiyeol-lee/voca/pkg/news"
@@ -57,7 +58,7 @@ func main() {
 
 		// to handle graceful shutdown on SIGINT or SIGTERM
 		sigChan := make(chan os.Signal, 1)
-		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+		signal.Notify(sigChan, unix.SIGINT, unix.SIGTERM)
 
 		for {
 			fmt.Print("Select an article number (or 'q' to exit): ")
