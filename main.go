@@ -16,10 +16,12 @@ import (
 	"github.com/jiyeol-lee/voca/pkg/vocabulary"
 )
 
-var vocaGpt = struct {
+type VocaGpt struct {
 	model         string
 	systemContent string
-}{
+}
+
+var vocaStudyGpt = VocaGpt{
 	model: "gpt-4.1",
 	systemContent: `You must:
 - Keep your answers impersonal.
@@ -38,6 +40,34 @@ When given a word or phrase, follow these steps:
 1. **Read the Text**: Carefully read the provided text.  
 2. **Explain the Word or Phrase**: Briefly explain the meaning of the word or phrase in English and Korean, using clear language.  
 3. **Provide Examples**: Give five examples of how the word or phrase is used in sentences, ensuring they are relevant and illustrative in English and Korean.`,
+}
+
+var vocaStoryGpt = VocaGpt{
+	model: "gpt-4.1",
+	systemContent: `You must:
+- Keep your answers impersonal.
+- Use actual line breaks in your responses; only use "\n" when you want a literal backslash followed by 'n'.
+- Use Markdown formatting in your answers.
+- Do not ask any follow-up questions.
+- With the given words, create a story to help remember the words.
+- Wrap given words in double asterisks in the story like this: **WORD** only for the English story section.
+- Do not include any additional text or explanations outside of the specified guidelines.
+
+Follow these schemas in your response (full capital letters are placeholders to be replaced with actual content):
+
+# [STORY_TITLE] (KOREAN_TRANSLATION)
+
+## Selected Words
+
+- [WORD_1] (KOREAN_TRANSLATION)
+- [WORD_2] (KOREAN_TRANSLATION)
+- ...
+
+## Story (English)
+[STORY_IN_ENGLISH]
+
+## 한국어 번역
+[STORY_IN_KOREAN]`,
 }
 
 func main() {
@@ -104,6 +134,30 @@ func main() {
 			log.Fatalf("Error deleting vocabulary: %v", err)
 		}
 
+	case "story":
+		s := vocabulary.NewStore()
+		words, err := s.GetRandomWords(10)
+		if err != nil {
+			log.Fatalf("Error getting random words: %v", err)
+		}
+		c, err := copilot.NewCopilot()
+		if err != nil {
+			log.Fatalf("Error creating copilot instance: %v", err)
+		}
+
+		res, err := c.ChatCompletion(vocaStoryGpt.model, []map[string]string{
+			{"role": "system", "content": vocaStoryGpt.systemContent},
+			{"role": "user", "content": strings.Join(words, ", ")},
+		})
+		if err != nil {
+			log.Fatalf("Error getting chat completion: %v", err)
+		}
+
+		err = pagerView(res.Choices[0].Message.Content)
+		if err != nil {
+			log.Fatalf("Error displaying content in pager view: %v", err)
+		}
+
 	case "study":
 		s := vocabulary.NewStore()
 
@@ -128,8 +182,8 @@ func main() {
 			log.Fatalf("Error creating copilot instance: %v", err)
 		}
 
-		res, err := c.ChatCompletion(vocaGpt.model, []map[string]string{
-			{"role": "system", "content": vocaGpt.systemContent},
+		res, err := c.ChatCompletion(vocaStudyGpt.model, []map[string]string{
+			{"role": "system", "content": vocaStudyGpt.systemContent},
 			{"role": "user", "content": content},
 		})
 		if err != nil {

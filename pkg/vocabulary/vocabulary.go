@@ -107,6 +107,76 @@ func (s *store) DeleteVocabulary(word string) error {
 	return nil
 }
 
+type selectedWord struct {
+	id        string
+	word      string
+	readCount string
+}
+
+func (s *store) GetRandomWords(limit int) ([]string, error) {
+	cs, err := s.getCSVStore()
+	if err != nil {
+		return nil, fmt.Errorf("error getting CSV store: %w", err)
+	}
+
+	qResults, err := cs.Query(vocabularyTableName, []csvstore.QueryCondition{
+		{
+			Column:   "word",
+			Operator: "!=",
+			Value:    "",
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error getting vocabulary: %w", err)
+	}
+	resultsLen := qResults.Count
+	if resultsLen == 0 {
+		return []string{}, nil
+	}
+	if limit > resultsLen {
+		limit = resultsLen
+	}
+	perm := rand.Perm(resultsLen)
+	selectedWords := make([]selectedWord, 0, limit)
+	for _, idx := range perm[:limit] {
+		record := qResults.Records[idx]
+		selectedWords = append(selectedWords, selectedWord{
+			id:        record["id"],
+			word:      record["word"],
+			readCount: record["read_count"],
+		})
+	}
+	defer func() {
+		for _, w := range selectedWords {
+			oldReadCount, err := strconv.Atoi(w.readCount)
+			if err != nil {
+				log.Printf("error converting read_count to int: %v\n", err)
+				continue
+			}
+			newReadCount := strconv.Itoa(oldReadCount + 1)
+			cs.Update(vocabularyTableName, csvstore.CSVRecord{
+				"read_count": newReadCount,
+			}, []csvstore.QueryCondition{
+				{
+					Column:   "id",
+					Operator: "=",
+					Value:    w.id,
+				},
+			})
+		}
+		err = s.syncStore()
+		if err != nil {
+			log.Printf("error syncing store: %v\n", err)
+		}
+	}()
+
+	words := make([]string, 0, limit)
+	for _, w := range selectedWords {
+		words = append(words, w.word)
+	}
+	return words, nil
+}
+
 func (s *store) GetLeastReadVocabulary() (csvstore.CSVRecord, error) {
 	cs, err := s.getCSVStore()
 	if err != nil {
@@ -121,6 +191,8 @@ func (s *store) GetLeastReadVocabulary() (csvstore.CSVRecord, error) {
 		return nil, fmt.Errorf("no vocabulary found")
 	}
 
+	// why query again?
+	// to pick one vocabulary within the least read count randomly
 	leastReadCount := qSortedResults.Records[0]["read_count"]
 	qResult, err := cs.Query(vocabularyTableName, []csvstore.QueryCondition{
 		{
