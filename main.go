@@ -50,7 +50,7 @@ var vocaStoryGpt = VocaGpt{
 - Use Markdown formatting in your answers.
 - Do not ask any follow-up questions.
 - With the given words, create a story to help remember the words.
-- Wrap given words in double asterisks in the story like this: **WORD** only for the English story section.
+- Wrap given words in double asterisks in the story like this: **WORD** in both "Story (English)" and "한국어 번역". Do not wrap it in "Selected Words" section.
 - Do not include any additional text or explanations outside of the specified guidelines.
 
 Follow these schemas in your response (full capital letters are placeholders to be replaced with actual content):
