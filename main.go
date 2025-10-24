@@ -1,28 +1,30 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
 	"os"
-	"os/exec"
 	"os/signal"
 	"strings"
 
 	"golang.org/x/sys/unix"
 
-	"github.com/jiyeol-lee/copilot"
+	"github.com/jiyeol-lee/openai"
 	"github.com/jiyeol-lee/voca/pkg/news"
 	"github.com/jiyeol-lee/voca/pkg/vocabulary"
 )
 
 type VocaGpt struct {
-	model         string
-	systemContent string
+	model           string
+	systemContent   string
+	temperature     float32
+	reasoningEffort string
 }
 
 var vocaStudyGpt = VocaGpt{
-	model: "gpt-4.1",
+	model: "gpt-4.1-nano",
 	systemContent: `You must:
 - Keep your answers impersonal.
 - Use actual line breaks in your responses; only use "\n" when you want a literal backslash followed by 'n'.
@@ -40,10 +42,11 @@ When given a word or phrase, follow these steps:
 1. **Read the Text**: Carefully read the provided text.  
 2. **Explain the Word or Phrase**: Briefly explain the meaning of the word or phrase in English and Korean, using clear language.  
 3. **Provide Examples**: Give five examples of how the word or phrase is used in sentences, ensuring they are relevant and illustrative in English and Korean.`,
+	temperature: 1,
 }
 
 var vocaStoryGpt = VocaGpt{
-	model: "gpt-4.1",
+	model: "gpt-4.1-nano",
 	systemContent: `You must:
 - Keep your answers impersonal.
 - Use actual line breaks in your responses; only use "\n" when you want a literal backslash followed by 'n'.
@@ -64,15 +67,23 @@ Follow these schemas in your response (full capital letters are placeholders to 
 - ...
 
 ## Story (English)
+
 [STORY_IN_ENGLISH]
 
 ## 한국어 번역
+
 [STORY_IN_KOREAN]`,
+	temperature: 1,
 }
 
 func main() {
 	flag.Parse()
 	args := flag.Args()
+
+	apiKey := os.Getenv("OPENAI_API_KEY")
+	if apiKey == "" {
+		log.Fatal("OPENAI_API_KEY environment variable not set")
+	}
 
 	switch args[0] {
 	case "news":
@@ -140,22 +151,24 @@ func main() {
 		if err != nil {
 			log.Fatalf("Error getting random words: %v", err)
 		}
-		c, err := copilot.NewCopilot()
-		if err != nil {
-			log.Fatalf("Error creating copilot instance: %v", err)
-		}
 
-		res, err := c.ChatCompletion(vocaStoryGpt.model, []map[string]string{
-			{"role": "system", "content": vocaStoryGpt.systemContent},
-			{"role": "user", "content": strings.Join(words, ", ")},
-		})
-		if err != nil {
-			log.Fatalf("Error getting chat completion: %v", err)
+		client := openai.NewClient(apiKey)
+		req := openai.ChatCompletionRequest{
+			Model: vocaStoryGpt.model,
+			Messages: []openai.Message{
+				{Role: "system", Content: vocaStoryGpt.systemContent},
+				{Role: "user", Content: strings.Join(words, ", ")},
+			},
+			Temperature:     vocaStoryGpt.temperature,
+			ReasoningEffort: vocaStoryGpt.reasoningEffort,
 		}
-
-		err = pagerView(res.Choices[0].Message.Content)
-		if err != nil {
-			log.Fatalf("Error displaying content in pager view: %v", err)
+		opts := openai.StreamOptions{
+			WordWrap: 100,
+			Cancel:   func() {},
+		}
+		fmt.Println("")
+		if err := client.CreateChatCompletionStreamWithMarkdown(context.Background(), req, os.Stdout, opts); err != nil {
+			log.Fatalf("stream error: %v", err)
 		}
 
 	case "study":
@@ -177,42 +190,23 @@ func main() {
 			}
 		}
 
-		c, err := copilot.NewCopilot()
-		if err != nil {
-			log.Fatalf("Error creating copilot instance: %v", err)
+		client := openai.NewClient(apiKey)
+		req := openai.ChatCompletionRequest{
+			Model: vocaStudyGpt.model,
+			Messages: []openai.Message{
+				{Role: "system", Content: vocaStudyGpt.systemContent},
+				{Role: "user", Content: content},
+			},
+			Temperature:     vocaStudyGpt.temperature,
+			ReasoningEffort: vocaStudyGpt.reasoningEffort,
 		}
-
-		res, err := c.ChatCompletion(vocaStudyGpt.model, []map[string]string{
-			{"role": "system", "content": vocaStudyGpt.systemContent},
-			{"role": "user", "content": content},
-		})
-		if err != nil {
-			log.Fatalf("Error getting chat completion: %v", err)
+		opts := openai.StreamOptions{
+			WordWrap: 100,
+			Cancel:   func() {},
 		}
-
-		go func() {
-			cmd := exec.Command("say", content)
-			cmd.Output()
-		}()
-		err = pagerView(res.Choices[0].Message.Content)
-		if err != nil {
-			log.Fatalf("Error displaying content in pager view: %v", err)
-		}
-		if isUserEntered {
-			fmt.Print(
-				"Do you want to add it to dictionary? (Enter 'y' or 'yes' to add, or any other key to exit): ",
-			)
-			var input string
-			fmt.Scanln(&input)
-			if input != "y" && input != "yes" {
-				fmt.Println("See ya!")
-				os.Exit(0)
-			}
-			s = vocabulary.NewStore()
-			_, err := s.AddVocabulary(content)
-			if err != nil {
-				log.Fatalf("Error adding vocabulary: %v", err)
-			}
+		fmt.Println("")
+		if err := client.CreateChatCompletionStreamWithMarkdown(context.Background(), req, os.Stdout, opts); err != nil {
+			log.Fatalf("stream error: %v", err)
 		}
 	default:
 		fmt.Println("Expected 'news', 'add', 'delete' or 'study' subcommands")
