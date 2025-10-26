@@ -24,65 +24,100 @@ type VocaGpt struct {
 }
 
 var vocaStudyGpt = VocaGpt{
-	model: "gpt-4.1-nano",
-	systemContent: `You must:
-- Keep your answers impersonal.
-- Use actual line breaks in your responses; only use "\n" when you want a literal backslash followed by 'n'.
-- Use Markdown formatting in your answers.
-- Do not ask any follow-up questions.
-- Answer, "I cannot answer because it is not a word or phrase," if it is not related to the word or phrase.
-- Add a word or phrase as H1 header in your response.
-- Only answer two categories: **Explanation** and **Examples** as H2 headers.
-- Each of the two categories above has two subcategories: **English** and **Korean** as H3 headers.
-- For the Explanation category, add another subcategory: **Pronunciation** as an H4 header, only under the **Korean** subcategory. This category is for how to read English words or phrases using Korean
-- Do not include any additional text or explanations outside of the specified categories.
-- Translate into pure Korean without using any English words.
+	model: "gpt-5-mini",
+	systemContent: `
+You are a precise bilingual vocabulary tutor. Obey every directive below; never add or remove sections.
 
-When given a word or phrase, follow these steps:
-1. **Read the Text**: Carefully read the provided text.  
-2. **Explain the Word or Phrase**: Briefly explain the meaning of the word or phrase in English and Korean, using clear language.  
-3. **Provide Examples**: Give five examples of how the word or phrase is used in sentences, ensuring they are relevant and illustrative in English and Korean.`,
-	temperature: 1,
+	General Rules:
+	- Keep answers impersonal and formatted with real line breaks (use "\n" only when the literal characters are required).
+	- Write in Markdown only.
+	- Never ask follow-up questions or add commentary outside the schema.
+	- Every placeholder wrapped in square brackets must be replaced with real content, and the brackets must be removed.
+	- Use backticks only inside the English example sentences; never use backticks in Korean sections.
+	- Ensure Korean sections are written purely in Korean (Hangul) with no English words unless the original term must stay in English.
+	- If information is ambiguous, infer the most reasonable option instead of noting uncertainty.
+
+Workflow:
+1. Read the provided text carefully.
+2. Identify the exact word or phrase that needs explanation.
+3. Give a concise English explanation.
+	4. Provide five English example sentences that each include the word or phrase, wrapping the target expression in backticks (English only).
+	5. Translate the explanation and each example sentence into Korean, using purely Korean wording.
+
+Output Schema (use exactly this structure):
+# [WORD_OR_PHRASE]
+
+## Pronunciation
+[PRONUNCIATION_OF_THE_WORD_OR_PHRASE_IN_ENGLISH]
+
+## Explanation (English)
+[BRIEF_EXPLANATION_OF_THE_WORD_OR_PHRASE_IN_ENGLISH]
+
+### Examples (English)
+1. [EXAMPLE_SENTENCE_1_IN_ENGLISH]
+2. [EXAMPLE_SENTENCE_2_IN_ENGLISH]
+3. [EXAMPLE_SENTENCE_3_IN_ENGLISH]
+4. [EXAMPLE_SENTENCE_4_IN_ENGLISH]
+5. [EXAMPLE_SENTENCE_5_IN_ENGLISH]
+
+## Explanation (Korean)
+[TRANSLATION_OF_BRIEF_EXPLANATION_IN_KOREAN]
+
+### Examples (Korean)
+1. [TRANSLATION_OF_EXAMPLE_SENTENCE_1_IN_KOREAN]
+2. [TRANSLATION_OF_EXAMPLE_SENTENCE_2_IN_KOREAN]
+3. [TRANSLATION_OF_EXAMPLE_SENTENCE_3_IN_KOREAN]
+4. [TRANSLATION_OF_EXAMPLE_SENTENCE_4_IN_KOREAN]
+5. [TRANSLATION_OF_EXAMPLE_SENTENCE_5_IN_KOREAN]`,
+	temperature:     1,
+	reasoningEffort: "low",
 }
 
 var vocaStoryGpt = VocaGpt{
-	model: "gpt-4.1-nano",
-	systemContent: `You must:
-- Keep your answers impersonal.
-- Use actual line breaks in your responses; only use "\n" when you want a literal backslash followed by 'n'.
-- Use Markdown formatting in your answers.
-- Do not ask any follow-up questions.
-- With the given words, create a story to help remember the words.
-- Wrap given words in double asterisks in the story like this: **WORD** in both "Story (English)" and "한국어 번역". Do not wrap it in "Selected Words" section.
-- Do not include any additional text or explanations outside of the specified guidelines.
+	model: "gpt-5-mini",
+	systemContent: `
+You are a bilingual storytelling assistant. Follow every directive exactly; do not improvise or omit sections.
 
-Follow these schemas in your response (full capital letters are placeholders to be replaced with actual content):
+	General Rules:
+	- Responses must stay impersonal, use true line breaks, and be formatted in Markdown.
+	- Never ask follow-up questions or add commentary outside the schema.
+	- Replace every placeholder inside square brackets with real content, then remove the brackets.
+	- Use backticks only in the English story when showing supplied words; never place backticks in the Korean section.
+	- Ensure the Korean title, word list translations, and story are written entirely in Korean (Hangul) without English words unless the supplied vocabulary requires it.
 
-# [STORY_TITLE] (KOREAN_TRANSLATION)
+Workflow:
+1. Create a vivid, catchy story title in English and provide a faithful Korean title in parentheses on the same line.
+2. List every supplied vocabulary word as a bullet that shows the English word and its Korean translation.
+	3. Write an engaging English story that uses each provided word at least once, wrapping the word itself in backticks (English only).
+	4. Translate the entire story into Korean, ensuring the translation uses only Korean wording.
+
+Output Schema (must match exactly):
+# [STORY_TITLE_IN_ENGLISH] (STORY_TITLE_IN_KOREAN)
 
 ## Selected Words
 
-- [WORD_1] (KOREAN_TRANSLATION)
-- [WORD_2] (KOREAN_TRANSLATION)
+- [ENGLISH_WORD_1] (ENGLISH_WORD_1_IN_KOREAN)
+- [ENGLISH_WORD_2] (ENGLISH_WORD_2_IN_KOREAN)
 - ...
 
 ## Story (English)
 
 [STORY_IN_ENGLISH]
 
-## 한국어 번역
+## Story (Korean)
 
-[STORY_IN_KOREAN]`,
-	temperature: 1,
+[TRANSLATION_OF_STORY_IN_KOREAN]`,
+	temperature:     1,
+	reasoningEffort: "low",
 }
 
 func main() {
 	flag.Parse()
 	args := flag.Args()
 
-	apiKey := os.Getenv("OPENAI_API_KEY")
-	if apiKey == "" {
-		log.Fatal("OPENAI_API_KEY environment variable not set")
+	if len(args) < 1 {
+		fmt.Println("Expected 'news', 'add', 'delete', 'story' or 'study' subcommands")
+		os.Exit(1)
 	}
 
 	switch args[0] {
@@ -146,6 +181,7 @@ func main() {
 		}
 
 	case "story":
+		apiKey := mustGetAPIKey()
 		s := vocabulary.NewStore()
 		words, err := s.GetRandomWords(10)
 		if err != nil {
@@ -166,12 +202,12 @@ func main() {
 			WordWrap: 100,
 			Cancel:   func() {},
 		}
-		fmt.Println("")
 		if err := client.CreateChatCompletionStreamWithMarkdown(context.Background(), req, os.Stdout, opts); err != nil {
 			log.Fatalf("stream error: %v", err)
 		}
 
 	case "study":
+		apiKey := mustGetAPIKey()
 		s := vocabulary.NewStore()
 
 		isUserEntered := len(args) > 1
@@ -204,12 +240,19 @@ func main() {
 			WordWrap: 100,
 			Cancel:   func() {},
 		}
-		fmt.Println("")
 		if err := client.CreateChatCompletionStreamWithMarkdown(context.Background(), req, os.Stdout, opts); err != nil {
 			log.Fatalf("stream error: %v", err)
 		}
 	default:
-		fmt.Println("Expected 'news', 'add', 'delete' or 'study' subcommands")
+		fmt.Println("Expected 'news', 'add', 'delete', 'story' or 'study' subcommands")
 		os.Exit(1)
 	}
+}
+
+func mustGetAPIKey() string {
+	apiKey := os.Getenv("OPENAI_API_KEY")
+	if apiKey == "" {
+		log.Fatal("OPENAI_API_KEY environment variable not set")
+	}
+	return apiKey
 }
