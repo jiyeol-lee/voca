@@ -3,9 +3,10 @@ module github.com/jiyeol-lee/voca
 go 1.25.2
 
 require (
-	github.com/jiyeol-lee/copilot v0.0.0-20250629183101-ea38b70a1ca9
 	github.com/jiyeol-lee/csvstore v0.0.0-20250619185743-7e006f235166
+	github.com/jiyeol-lee/openai v0.0.6
 	golang.org/x/net v0.33.0
+	golang.org/x/sys v0.34.0
 )
 
 require (
@@ -24,7 +25,6 @@ require (
 	github.com/dlclark/regexp2 v1.11.0 // indirect
 	github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f // indirect
 	github.com/gorilla/css v1.0.1 // indirect
-	github.com/jiyeol-lee/openai v0.0.6 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-localereader v0.0.1 // indirect
@@ -39,7 +39,6 @@ require (
 	github.com/yuin/goldmark v1.7.8 // indirect
 	github.com/yuin/goldmark-emoji v1.0.5 // indirect
 	golang.org/x/sync v0.13.0 // indirect
-	golang.org/x/sys v0.34.0 // indirect
 	golang.org/x/term v0.31.0 // indirect
 	golang.org/x/text v0.24.0 // indirect
 )
